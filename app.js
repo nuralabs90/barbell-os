@@ -1,5 +1,18 @@
 const STORE_KEY = "barbell-os:v1";
 
+const MAXIMS = [
+  "“Survive volatility. Earn optionality.”",
+  "“Avoid ruin. Everything else is tactics.”",
+  "“Skin in the game beats opinions.”",
+  "“Play long-term games with long-term people.”",
+  "“The best trades have limited downside.”",
+  "“If it can break you, it’s not worth the upside.”",
+  "“Seek convexity. Cap downside. Let upside breathe.”",
+  "“You get rich by owning equity—attention is a form of equity.”",
+  "“Via negativa: subtract fragility before adding complexity.”",
+  "“Compounding is fragile unless you protect the base.”",
+];
+
 const els = {
   domain: document.getElementById("domain"),
   safePct: document.getElementById("safePct"),
@@ -13,9 +26,19 @@ const els = {
   reset: document.getElementById("reset"),
   output: document.getElementById("output"),
   fragilityScore: document.getElementById("fragilityScore"),
+  fragilityLabel: document.getElementById("fragilityLabel"),
+  maxim: document.getElementById("maxim"),
 };
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+function todayStamp(iso) {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return "";
+  }
+}
 
 function load() {
   const raw = localStorage.getItem(STORE_KEY);
@@ -61,29 +84,91 @@ function wordCount(s) {
 }
 
 function fragilityScore(state) {
-  // Simple “operator” heuristic:
+  // Simple “operator” heuristic (lower is better):
   // - too much risk allocation increases fragility
   // - no kill list increases fragility
-  // - lack of safe plan increases fragility
-  const risk = state.riskPct; // higher risk => higher fragility
+  // - vague safe plan increases fragility
+  const risk = state.riskPct;
   const safeWords = wordCount(state.safeText);
   const killWords = wordCount(state.killText);
 
   let score = 50;
-  score += (risk - 15) * 1.2;                 // punish risk > 15
-  score += safeWords < 8 ? 14 : 0;            // punish vague safe plan
-  score += killWords < 6 ? 18 : 0;            // punish missing via negativa
+  score += (risk - 15) * 1.2;          // punish risk > 15
+  score += safeWords < 8 ? 14 : 0;     // punish vague safe plan
+  score += killWords < 6 ? 18 : 0;     // punish missing via negativa
   score = clamp(Math.round(score), 1, 99);
 
-  // Interpret: lower is better
   return score;
+}
+
+function scoreBand(score) {
+  // lower is better
+  if (score <= 33) return { band: "low", label: "Robust" };
+  if (score <= 66) return { band: "mid", label: "Neutral" };
+  return { band: "high", label: "Fragile" };
+}
+
+function pickMaxim() {
+  const idx = Math.floor(Math.random() * MAXIMS.length);
+  return MAXIMS[idx];
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function toMarkdown(state) {
+  return [
+    `# Barbell OS — ${state.domain}`,
+    ``,
+    `**Safe:** ${state.safePct}%`,
+    `**Convex:** ${state.riskPct}%`,
+    `**Updated:** ${todayStamp(state.updatedAt)}`,
+    ``,
+    `## SAFE (boring compounding)`,
+    state.safeText || "—",
+    ``,
+    `## CONVEX BETS (optionality)`,
+    state.riskText || "—",
+    ``,
+    `## KILL LIST (via negativa)`,
+    state.killText || "—",
+    ``,
+    `> Maxim: ${els.maxim?.textContent || "Survive volatility. Earn optionality."}`,
+    ``,
+  ].join("\n");
+}
+
+async function copyPlan(state) {
+  const md = toMarkdown(state);
+  await navigator.clipboard.writeText(md);
+}
+
+function setOutputAnimation() {
+  // Fade-in micro animation
+  els.output.classList.remove("is-ready");
+  els.output.classList.add("is-new");
+  requestAnimationFrame(() => {
+    els.output.classList.remove("is-new");
+    els.output.classList.add("is-ready");
+  });
 }
 
 function render(state) {
   const score = fragilityScore(state);
-  els.fragilityScore.textContent = String(score);
+  const { band, label } = scoreBand(score);
 
-  const stamp = new Date(state.updatedAt).toLocaleString();
+  els.fragilityScore.innerHTML = `<span class="scorePill score-${band}">${score}</span>`;
+  els.fragilityLabel.textContent = label;
+
+  els.maxim.textContent = pickMaxim();
+
+  const stamp = todayStamp(state.updatedAt);
 
   const safe = state.safeText || "—";
   const risk = state.riskText || "—";
@@ -115,51 +200,22 @@ function render(state) {
     </div>
   `;
 
+  setOutputAnimation();
   els.copy.disabled = false;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function toMarkdown(state) {
-  return [
-    `# Barbell OS — ${state.domain}`,
-    ``,
-    `**Safe:** ${state.safePct}%`,
-    `**Convex:** ${state.riskPct}%`,
-    `**Updated:** ${new Date(state.updatedAt).toLocaleString()}`,
-    ``,
-    `## SAFE (boring compounding)`,
-    state.safeText || "—",
-    ``,
-    `## CONVEX BETS (optionality)`,
-    state.riskText || "—",
-    ``,
-    `## KILL LIST (via negativa)`,
-    state.killText || "—",
-    ``,
-    `> Maxim: Survive volatility. Earn optionality.`,
-    ``,
-  ].join("\n");
-}
-
-async function copyPlan(state) {
-  const md = toMarkdown(state);
-  await navigator.clipboard.writeText(md);
 }
 
 function resetAll() {
   localStorage.removeItem(STORE_KEY);
   applyState({ domain: "Money", safePct: 85, safeText: "", riskText: "", killText: "" });
+
   els.output.innerHTML = `<div class="empty muted">Generate to render your plan.</div>`;
-  els.fragilityScore.textContent = "—";
+  els.fragilityScore.innerHTML = "—";
+  els.fragilityLabel.textContent = "";
+  els.maxim.textContent = "“Survive volatility. Earn optionality.”";
+  els.output.classList.remove("is-new", "is-ready");
   els.copy.disabled = true;
+  els.copy.textContent = "Copy";
+  els.copy.classList.remove("copied");
 }
 
 function boot() {
@@ -168,8 +224,20 @@ function boot() {
   const saved = load();
   if (saved) {
     applyState(saved);
-    // render only if user had generated before (avoid surprise overwrite)
-    if (saved.safeText || saved.riskText || saved.killText) render(currentState());
+    // If there is meaningful content, render so the plan persists across reloads
+    if ((saved.safeText && saved.safeText.trim()) || (saved.riskText && saved.riskText.trim()) || (saved.killText && saved.killText.trim())) {
+      render(currentState());
+    } else {
+      els.fragilityScore.innerHTML = "—";
+      els.fragilityLabel.textContent = "";
+      els.maxim.textContent = "“Survive volatility. Earn optionality.”";
+      els.copy.disabled = true;
+    }
+  } else {
+    els.fragilityScore.innerHTML = "—";
+    els.fragilityLabel.textContent = "";
+    els.maxim.textContent = "“Survive volatility. Earn optionality.”";
+    els.copy.disabled = true;
   }
 
   els.safePct.addEventListener("input", () => {
@@ -193,16 +261,15 @@ function boot() {
     try {
       await copyPlan(state);
       els.copy.textContent = "Copied";
-      setTimeout(() => (els.copy.textContent = "Copy"), 900);
+      els.copy.classList.add("copied");
+      setTimeout(() => {
+        els.copy.textContent = "Copy";
+        els.copy.classList.remove("copied");
+      }, 900);
     } catch {
-      alert("Copy failed. Your browser may block clipboard on local files. It will work on GitHub Pages.");
+      alert("Copy failed. Clipboard may be blocked on local files. It will work reliably once deployed on GitHub Pages.");
     }
   });
 
   els.reset.addEventListener("click", () => {
-    const ok = confirm("Reset Barbell OS? This clears saved data in your browser.");
-    if (ok) resetAll();
-  });
-}
-
-boot();
+    const ok = confirm("Reset Barbell
