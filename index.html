@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Barbell OS</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="top">
+        <div>
+          <h1>Barbell OS</h1>
+          <p class="sub">Protect downside. Seek convex upside. Remove fragility.</p>
+        </div>
+        <div class="badge" title="Local-only. No accounts.">
+          Local • Private
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="grid">
+          <label class="field">
+            <span>Domain</span>
+            <select id="domain">
+              <option value="Money">Money</option>
+              <option value="Time">Time</option>
+              <option value="Health">Health</option>
+              <option value="Career">Career</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Safe allocation</span>
+            <div class="sliderRow">
+              <input id="safePct" type="range" min="70" max="95" value="85" />
+              <div class="pctPill">
+                <span id="safeLabel">85</span><span class="muted">%</span>
+              </div>
+            </div>
+            <div class="hint">
+              Risk allocation: <strong><span id="riskLabel">15</span>%</strong>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid2">
+          <label class="field">
+            <span>Safe (boring compounding)</span>
+            <textarea id="safeText" rows="5" placeholder="Examples: index funds + cash buffer; sleep 8h; skill practice daily; stable revenue…"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Convex bets (small downside, big upside)</span>
+            <textarea id="riskText" rows="5" placeholder="Examples: content experiments; tiny product launches; networking; asymmetric investments…"></textarea>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Kill list (via negativa)</span>
+          <textarea id="killText" rows="4" placeholder="Fragility sources to remove: debt; late nights; toxic clients; doom scrolling; posture neglect…"></textarea>
+          <div class="hint">
+            Rule: If it can blow up your week, it doesn’t belong.
+          </div>
+        </label>
+
+        <div class="actions">
+          <button id="generate">Generate Plan</button>
+          <button id="copy" class="ghost" disabled>Copy</button>
+          <button id="reset" class="danger ghost">Reset</button>
+        </div>
+      </section>
+
+      <section class="card" id="outputCard">
+        <div class="outHead">
+          <div>
+            <h2>Plan</h2>
+            <p class="muted">A single page you can execute.</p>
+          </div>
+          <div class="score">
+            <span class="muted">Fragility</span>
+            <span id="fragilityScore" class="scoreNum">—</span>
+          </div>
+        </div>
+
+        <div id="output" class="output">
+          <div class="empty muted">Generate to render your plan.</div>
+        </div>
+
+        <div class="footerLine">
+          <span class="muted">Maxim:</span>
+          <span class="maxim">“Survive volatility. Earn optionality.”</span>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <small>Barbell OS stores data only in your browser (LocalStorage).</small>
+      </footer>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
